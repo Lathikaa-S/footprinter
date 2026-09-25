@@ -2,11 +2,13 @@ import { expect, test } from "bun:test"
 import { any_circuit_element } from "circuit-json"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { fp } from "../src/footprinter"
-import { createBooleanDifferenceVisualization } from "../src/helpers/boolean-difference"
+import { compareFootprinterVsKicad } from "./fixtures/compareFootprinterVsKicad"
 
 test("QFN16 automatic pads have clearance and explicit pads match KiCad copper", async () => {
+  const kicadPath =
+    "Package_DFN_QFN.pretty/QFN-16-1EP_3x3mm_P0.5mm_EP1.75x1.75mm.circuit.json"
   const response = await fetch(
-    "https://kicad-mod-cache.tscircuit.com/Package_DFN_QFN.pretty/QFN-16-1EP_3x3mm_P0.5mm_EP1.75x1.75mm.circuit.json",
+    `https://kicad-mod-cache.tscircuit.com/${kicadPath}`,
   )
   expect(response.ok).toBe(true)
   const kicadPads = any_circuit_element
@@ -36,10 +38,10 @@ test("QFN16 automatic pads have clearance and explicit pads match KiCad copper",
   }
 
   // KiCad's 3.7 mm outer copper span plus quad's 0.1 mm inset per edge.
+  const footprint =
+    "qfn16_w3.9mm_h3.9mm_p0.5mm_pl0.775mm_pw0.25mm_thermalpad1.75x1.75mm"
   const pads = fp
-    .string(
-      "qfn16_w3.9mm_h3.9mm_p0.5mm_pl0.775mm_pw0.25mm_thermalpad1.75x1.75mm",
-    )
+    .string(footprint)
     .circuitJson()
     .filter((element) => element.type === "pcb_smtpad")
   expect(pads).toHaveLength(17)
@@ -63,13 +65,12 @@ test("QFN16 automatic pads have clearance and explicit pads match KiCad copper",
     expect(pad.corner_radius ?? 0).toBeCloseTo(reference.corner_radius ?? 0, 8)
   }
 
-  const comparisonSvg = createBooleanDifferenceVisualization(pads, kicadPads, {
-    title: "Explicit QFN16 vs KiCad: copper geometry parity",
-    operation: "intersection",
-    footprintNameA: "Explicit QFN16",
-    footprintNameB: "QFN16, 3x3, EP1.75",
-  })
-  expect(comparisonSvg).toMatchSvgSnapshot(
+  const { avgRelDiff, booleanDifferenceSvg } = await compareFootprinterVsKicad(
+    footprint,
+    kicadPath,
+  )
+  expect(avgRelDiff).toBeCloseTo(0, 6)
+  expect(booleanDifferenceSvg).toMatchSvgSnapshot(
     import.meta.path,
     "qfn16-auto-thermalpad-kicad",
   )
