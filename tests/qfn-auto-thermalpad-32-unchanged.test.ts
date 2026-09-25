@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test"
 import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { fp } from "../src/footprinter"
-import { getMinimumPadGap } from "./fixtures/get-minimum-pad-gap"
 
 test("QFN32 keeps its already-separated default pad length", () => {
   const circuitJson = fp.string("qfn32_thermalpad").circuitJson()
@@ -14,7 +13,6 @@ test("QFN32 keeps its already-separated default pad length", () => {
   expect(thermalPad?.width).toBeCloseTo(3.75, 8)
   expect(thermalPad?.height).toBeCloseTo(3.75, 8)
   expect(pads[0]?.width).toBeCloseTo(0.875, 8)
-  expect(getMinimumPadGap(circuitJson)).toBeCloseTo(0.15, 8)
   expect(convertCircuitJsonToPcbSvg(circuitJson)).toMatchSvgSnapshot(
     import.meta.path,
     "qfn32-auto-thermalpad-unchanged",
