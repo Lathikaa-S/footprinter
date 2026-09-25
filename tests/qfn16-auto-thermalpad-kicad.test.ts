@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { any_circuit_element } from "circuit-json"
+import { convertCircuitJsonToPcbSvg } from "circuit-to-svg"
 import { fp } from "../src/footprinter"
 import { createBooleanDifferenceVisualization } from "../src/helpers/boolean-difference"
 
@@ -13,10 +14,16 @@ test("QFN16 automatic pads have clearance and explicit pads match KiCad copper",
     .parse(await response.json())
     .filter((element) => element.type === "pcb_smtpad")
   // Preserve the exact automatic-dimension input from PR #894.
-  const automaticPads = fp
+  const automaticCircuitJson = fp
     .string("qfn16_w3_h3_p0.5mm_thermalpad")
     .circuitJson()
-    .filter((element) => element.type === "pcb_smtpad")
+  expect(convertCircuitJsonToPcbSvg(automaticCircuitJson)).toMatchSvgSnapshot(
+    import.meta.path,
+    "qfn16-auto-thermalpad",
+  )
+  const automaticPads = automaticCircuitJson.filter(
+    (element) => element.type === "pcb_smtpad",
+  )
   expect(automaticPads).toHaveLength(17)
   for (const [index, pad] of automaticPads.entries()) {
     if (pad.shape !== "rect") throw new Error("Expected rectangular pad")
